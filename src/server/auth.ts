@@ -3,7 +3,10 @@ import {
   getServerSession,
   type DefaultSession,
   type NextAuthOptions,
+  UserRole,
+  Session,
 } from "next-auth";
+import { JWT } from "next-auth/jwt";
 import DiscordProvider from "next-auth/providers/discord";
 
 import GithubProvider from "next-auth/providers/github";
@@ -22,15 +25,18 @@ declare module "next-auth" {
   interface Session extends DefaultSession {
     user: {
       id: string;
-      // ...other properties
-      // role: UserRole;
+      role: UserRole;
     } & DefaultSession["user"];
   }
 
-  // interface User {
-  //   // ...other properties
-  //   // role: UserRole;
-  // }
+  interface User {
+    role: UserRole;
+  }
+
+  enum UserRole {
+    "USER",
+    "ADMIN",
+  }
 }
 
 /**
@@ -40,15 +46,52 @@ declare module "next-auth" {
  */
 export const authOptions: NextAuthOptions = {
   callbacks: {
-    session: ({ session, user }) => ({
-      ...session,
-      user: {
-        ...session.user,
-        id: user.id,
-      },
-    }),
+    session({ session, token }: { session: Session; token: JWT }) {
+      console.log(session)
+      console.log(token)
+      if (token) {
+        session.user.id = token.id;
+        session.user.email = token.email;
+        session.user.role = token.role;
+        session.user.picture = token.picture; // replace 'image' with 'picture'
+      }
+      return session;
+    },
+    jwt: async ({ token }: { token: JWT }) => {
+      console.log(token);
+      const dbUser = await db.query.users.findFirst({
+        columns: {
+          email: true,
+          name: true,
+          emailVerified: true,
+          role: true,
+          id: true,
+          image: true,
+        },
+      });
+      console.log(dbUser);
+      if (!dbUser) {
+        console.log("No User");
+        throw new Error("Unable to find user");
+      }
+      return {
+        id: dbUser.id,
+        name: dbUser.name,
+        email: dbUser.email,
+        emailVerified: dbUser.emailVerified,
+        role: dbUser.role,
+        picture: dbUser.image,
+        sub: token.sub,
+      };
+    },
   },
-  adapter: DrizzleAdapter(db),
+  session: {
+    strategy: "jwt",
+  },
+  jwt: {
+    secret: env.NEXTAUTH_SECRET
+  },
+  adapter: DrizzleAdapter(db, pgTable),
   providers: [
     GithubProvider({
       clientId: env.GITHUB_CLIENT_ID,

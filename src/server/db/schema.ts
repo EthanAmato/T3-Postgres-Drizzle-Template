@@ -6,6 +6,7 @@ import {
   pgTableCreator,
   bigint,
   varchar,
+  pgEnum,
 } from "drizzle-orm/pg-core";
 import type { AdapterAccount } from "@auth/core/adapters";
 
@@ -17,6 +18,7 @@ import type { AdapterAccount } from "@auth/core/adapters";
  */
 export const pgTable = pgTableCreator((name) => `copy_hub_t3_${name}`);
 
+export const roleEnum = pgEnum('role', ["USER", "OWNER"])
 
 export const users = pgTable("user", {
   id: text("id").notNull().primaryKey(),
@@ -24,6 +26,7 @@ export const users = pgTable("user", {
   email: text("email").notNull(),
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
+  role: roleEnum('role').$default(() => "USER")
 });
 
 export const accounts = pgTable(
@@ -39,6 +42,7 @@ export const accounts = pgTable(
     access_token: text("access_token"),
     expires_at: integer("expires_at"),
     token_type: text("token_type"),
+    refresh_token_expires_in: integer("refresh_token_expires_in"),
     scope: text("scope"),
     id_token: text("id_token"),
     session_state: text("session_state"),

@@ -24,8 +24,8 @@ import { pgTable, users } from "~/server/db/schema";
  */
 
 enum UserRole {
-  "USER",
-  "ADMIN",
+  USER = "USER",
+  ADMIN = "OWNER",
 }
 declare module "next-auth" {
   interface Session extends DefaultSession {
@@ -81,7 +81,7 @@ export const authOptions: NextAuthOptions = {
 
       return {
         id: dbUser.id,
-        role: dbUser.role,
+        role: dbUser.role as UserRole,
         email: dbUser.email,
         emailVerified: dbUser.emailVerified,
         name: dbUser.name,

@@ -1,4 +1,5 @@
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
+import { sql } from "drizzle-orm";
 import {
   getServerSession,
   type DefaultSession,
@@ -6,14 +7,14 @@ import {
   UserRole,
   Session,
 } from "next-auth";
-import { JWT } from "next-auth/jwt";
+import { DefaultJWT, JWT } from "next-auth/jwt";
 import DiscordProvider from "next-auth/providers/discord";
 
 import GithubProvider from "next-auth/providers/github";
 
 import { env } from "~/env.mjs";
 import { db } from "~/server/db";
-import { pgTable } from "~/server/db/schema";
+import { pgTable, users } from "~/server/db/schema";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -21,6 +22,11 @@ import { pgTable } from "~/server/db/schema";
  *
  * @see https://next-auth.js.org/getting-started/typescript#module-augmentation
  */
+
+enum UserRole {
+  "USER",
+  "ADMIN",
+}
 declare module "next-auth" {
   interface Session extends DefaultSession {
     user: {
@@ -32,13 +38,19 @@ declare module "next-auth" {
   interface User {
     role: UserRole;
   }
-
-  enum UserRole {
-    "USER",
-    "ADMIN",
-  }
 }
 
+declare module "next-auth/jwt" {
+  /**
+   * Returned by `useSession`, `getSession` and received as a prop on the `SessionProvider` React Context
+   */
+
+  interface JWT extends DefaultJWT {
+    id: string;
+    role: UserRole;
+    emailVerified: Date | null;
+  }
+}
 /**
  * Options for NextAuth.js used to configure adapters, providers, callbacks, etc.
  *
@@ -47,39 +59,32 @@ declare module "next-auth" {
 export const authOptions: NextAuthOptions = {
   callbacks: {
     session({ session, token }: { session: Session; token: JWT }) {
-      console.log(session)
-      console.log(token)
+      console.log(session);
+      console.log(token);
       if (token) {
         session.user.id = token.id;
         session.user.email = token.email;
         session.user.role = token.role;
-        session.user.picture = token.picture; // replace 'image' with 'picture'
+        session.user.image = token.picture; // replace 'image' with 'picture'
       }
       return session;
     },
     jwt: async ({ token }: { token: JWT }) => {
       console.log(token);
-      const dbUser = await db.query.users.findFirst({
-        columns: {
-          email: true,
-          name: true,
-          emailVerified: true,
-          role: true,
-          id: true,
-          image: true,
-        },
-      });
+      const userCheck = await db.select().from(users).where(sql`${users.email} = ${token.email}`)
+      const dbUser = userCheck[0];
       console.log(dbUser);
       if (!dbUser) {
         console.log("No User");
         throw new Error("Unable to find user");
       }
+
       return {
         id: dbUser.id,
-        name: dbUser.name,
+        role: dbUser.role,
         email: dbUser.email,
         emailVerified: dbUser.emailVerified,
-        role: dbUser.role,
+        name: dbUser.name,
         picture: dbUser.image,
         sub: token.sub,
       };
@@ -89,8 +94,9 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   jwt: {
-    secret: env.NEXTAUTH_SECRET
+    secret: env.NEXTAUTH_SECRET,
   },
+  secret: env.NEXTAUTH_SECRET,
   adapter: DrizzleAdapter(db, pgTable),
   providers: [
     GithubProvider({

@@ -4,12 +4,9 @@ import {
   getServerSession,
   type DefaultSession,
   type NextAuthOptions,
-  UserRole,
-  Session,
+  type Session,
 } from "next-auth";
-import { DefaultJWT, JWT } from "next-auth/jwt";
-import DiscordProvider from "next-auth/providers/discord";
-
+import { type DefaultJWT, type JWT } from "next-auth/jwt";
 import GithubProvider from "next-auth/providers/github";
 
 import { env } from "~/env.mjs";
@@ -39,7 +36,11 @@ declare module "next-auth" {
     role: UserRole;
   }
 }
-
+declare module "next-auth/adapters" {
+  export interface AdapterUser {
+    role?: UserRole;
+  }
+}
 declare module "next-auth/jwt" {
   /**
    * Returned by `useSession`, `getSession` and received as a prop on the `SessionProvider` React Context
@@ -59,8 +60,7 @@ declare module "next-auth/jwt" {
 export const authOptions: NextAuthOptions = {
   callbacks: {
     session({ session, token }: { session: Session; token: JWT }) {
-      console.log(session);
-      console.log(token);
+
       if (token) {
         session.user.id = token.id;
         session.user.email = token.email;
@@ -70,10 +70,12 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     jwt: async ({ token }: { token: JWT }) => {
-      console.log(token);
-      const userCheck = await db.select().from(users).where(sql`${users.email} = ${token.email}`)
+      const userCheck = await db
+        .select()
+        .from(users)
+        .where(sql`${users.email} = ${token.email}`);
       const dbUser = userCheck[0];
-      console.log(dbUser);
+
       if (!dbUser) {
         console.log("No User");
         throw new Error("Unable to find user");

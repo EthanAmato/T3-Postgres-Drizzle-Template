@@ -11,7 +11,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "@auth/drizzle-adapter": "^0.3.5",
+    "@auth/drizzle-adapter": "^0.3.7",
     "@planetscale/database": "^1.11.0",
     "@t3-oss/env-nextjs": "^0.7.0",
     "@tanstack/react-query": "^4.32.6",

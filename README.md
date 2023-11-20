@@ -25,7 +25,7 @@ Follow these steps to get your development environment running:
 First, clone the project repository to your local machine:
 
 ```bash
-git clone [[repository URL]](https://github.com/EthanAmato/T3-Postgres-Drizzle-Template)
+git clone https://github.com/EthanAmato/T3-Postgres-Drizzle-Template
 ```
 
 ### 2. Navigate to the Project Directory

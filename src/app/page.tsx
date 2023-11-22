@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 
 import { CreatePost } from "~/app/_components/create-post";
@@ -66,10 +67,17 @@ async function CrudShowcase() {
   console.log(session)
   if (!session?.user) return null;
 
-
-  return (
-    <div className="w-full max-w-xs">
-      {session.user.name}
-    </div>
-  );
+  
+    return (
+      <div className="w-full max-w-xs">
+        {session.user.name}
+      </div>
+    );
 }
+
+
+
+
+
+
+

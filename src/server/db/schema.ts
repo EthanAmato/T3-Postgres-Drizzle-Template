@@ -16,6 +16,8 @@ import type { AdapterAccount } from "@auth/core/adapters";
  *
  * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
  */
+
+// Change name of copy_hub_t3 to create prefixes for tables:
 export const pgTable = pgTableCreator((name) => `copy_hub_t3_${name}`);
 
 export const roleEnum = pgEnum('role', ["USER", "OWNER"])
